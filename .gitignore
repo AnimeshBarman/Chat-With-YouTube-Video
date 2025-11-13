@@ -1,0 +1,20 @@
+# Python Virtual Environments
+/backend/venv/
+/backend/venv_new/
+/backend/myenv/
+*.venv
+
+# Python Cache
+__pycache__/
+/backend/__pycache__/
+
+# Secrets (Boht Zaroori)
+.env
+/backend/.env
+
+# yt-dlp temp folders
+/backend/temp_subs_*
+
+# OS & IDE
+.DS_Store
+.vscode/
