@@ -2,6 +2,7 @@ import os
 from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
+from langchain.chains.summarize import load_summarize_chain
 from dotenv import load_dotenv
 
 load_dotenv() 
@@ -43,3 +44,16 @@ def create_chat_chain(vector_store):
     )
     
     return chain
+
+def create_summarize_chain():
+    print("Loading summarization chain..")
+
+    llm = get_llm()
+
+    summary_chain = load_summarize_chain(
+        llm=llm,
+        chain_type="map_reduce"
+    )
+
+    print("Summarization chain loaded..")
+    return summary_chain

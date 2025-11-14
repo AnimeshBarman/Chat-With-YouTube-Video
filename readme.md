@@ -6,8 +6,8 @@ This backend is built to be fast and responsive, using background tasks to handl
 
 ## 🚀 Core Features
 
-* **Chat with Video:** Ask specific questions about the video's content (e.g., "What did the speaker say about React?").
-* **Conversational Memory:** The chatbot remembers previous questions, allowing for follow-up conversations (e.g., "Tell me more about that").
+* **Chat with Video:** Ask specific questions about the video's content.
+* **Conversational Memory:** The chatbot remembers previous questions, allowing for follow-up conversations.
 * **Full Video Summarization:** Get a complete summary of the entire video, generated in the background.
 * **Fast Processing:** The user can start chatting (Q&A) almost immediately while the full summary is prepared in the background.
 * **Multilingual Support:** Uses `yt-dlp` and multilingual embedding models to support videos in various languages (e.g., English, Hindi).

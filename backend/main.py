@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 import uvicorn
 from dotenv import load_dotenv
@@ -23,14 +23,38 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
 
+class SummarizeRequest(BaseModel):
+    video_id: str
+
+class SummarizeResponse(BaseModel):
+    summary: str
+
 
 vector_stores = {}
 chat_chains = {}
+summaries = {}
+
+
+def generate_and_save_summary(video_id: str, vector_store):
+    try:
+        print(f"[BG task {video_id}]: summarization started..")
+        docs = vector_store.similarity_seach("", k=1000)
+        if not docs:
+            print(f"{video_id}: docs not found..!")
+            return
+        
+        summary_chain = chat_service.create_summarize_chain()
+        result = summary_chain.run(docs)
+        summaries[video_id] = result
+
+    except Exception as e:
+        print(f"{video_id}: summary generation failed..! ERROR: {e}")
+        summaries[video_id] = f"Error: summary not generated.. {str(e)}"
 
 
 @app.get("/")
 def read_root():
-    return {"status": "ok", "message": "Server is running!"}
+    return {"status": "ok", "message": "Server is running..."}
 
 @app.post("/process_video")
 def process_video(request: VideoRequest):
@@ -53,6 +77,9 @@ def process_video(request: VideoRequest):
         
         vector_stores[video_id] = vector_store
         chat_chains[video_id] = chat_chain
+
+        print(f"Summarization task added to background..(ID: {video_id}).")
+        BackgroundTasks.add_task(generate_and_save_summary, video_id, vector_store)
         
         return {
             "status": "success",
@@ -82,6 +109,21 @@ def chat(request: ChatRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error during chat: {str(e)}")
+
+@app.post("/summarize_video",response_model=SummarizeResponse)
+def get_summary(request: SummarizeRequest):
+    summary = summaries.get(request.video_id)
+
+    if summary:
+        if summary.startswith("Error:"):
+            raise HTTPException(status_code=500, detail=summary)
+        return SummarizeResponse(summary=summary)
+    else:
+        if request.video_id not in vector_stores:
+            raise HTTPException(status_code=404, detail="Video not processed..!")
+        else:
+            raise HTTPException(status_code=202, detail="Summary not generated yet..!")
+        
 
 
 if __name__ == "__main__":
