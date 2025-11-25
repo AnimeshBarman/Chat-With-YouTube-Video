@@ -38,13 +38,8 @@ summaries = {}
 def generate_and_save_summary(video_id: str, vector_store):
     try:
         print(f"[BG task {video_id}]: summarization started..")
-        docs = vector_store.similarity_seach("", k=1000)
-        if not docs:
-            print(f"{video_id}: docs not found..!")
-            return
         
-        summary_chain = chat_service.create_summarize_chain()
-        result = summary_chain.run(docs)
+        result = chat_service.generate_summary(vector_store)
         summaries[video_id] = result
 
     except Exception as e:
@@ -57,7 +52,7 @@ def read_root():
     return {"status": "ok", "message": "Server is running..."}
 
 @app.post("/process_video")
-def process_video(request: VideoRequest):
+def process_video(request: VideoRequest, background_tasks: BackgroundTasks):
 
     video_id = video_processing.get_video_id(request.url)
     if not video_id:
@@ -79,8 +74,7 @@ def process_video(request: VideoRequest):
         chat_chains[video_id] = chat_chain
 
         print(f"Summarization task added to background..(ID: {video_id}).")
-        BackgroundTasks.add_task(generate_and_save_summary, video_id, vector_store)
-        
+        background_tasks.add_task(generate_and_save_summary, video_id, vector_store)
         return {
             "status": "success",
             "video_id": video_id,
@@ -94,20 +88,24 @@ def process_video(request: VideoRequest):
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
 
-    chat_chain = chat_chains.get(request.video_id)
+    chain = chat_chains.get(request.video_id)
     
-    if not chat_chain:
+    if not chain:
         raise HTTPException(status_code=404, detail="Video not processed. Please call /process_video first.")
 
     try:
         print(f"Chatting with video: {request.video_id}")
         
 
-        result = chat_chain.invoke({"question": request.question})
+        result = chain.invoke({
+            "question": request.question,
+            "chat_history": []
+        })
         
-        return ChatResponse(answer=result['answer'])
+        return ChatResponse(answer=result)
         
     except Exception as e:
+        print(f"Chat erroor: {e}")
         raise HTTPException(status_code=500, detail=f"Error during chat: {str(e)}")
 
 @app.post("/summarize_video",response_model=SummarizeResponse)

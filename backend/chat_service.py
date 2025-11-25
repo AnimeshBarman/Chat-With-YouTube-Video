@@ -1,9 +1,13 @@
 import os
-from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
-from langchain.chains import ConversationalRetrievalChain
-from langchain.memory import ConversationBufferMemory
-from langchain.chains.summarize import load_summarize_chain
 from dotenv import load_dotenv
+from operator import itemgetter
+
+from langchain_huggingface import HuggingFaceEndpoint
+
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough, RunnableBranch
+from langchain_core.messages import AIMessage, HumanMessage
 
 load_dotenv() 
 
@@ -12,16 +16,17 @@ def get_llm():
     if not api_key:
         raise ValueError("HUGGINGFACEHUB_API_TOKEN not found in .env file.")
         
-    llm_endpoint = HuggingFaceEndpoint(
-        repo_id="mistralai/Mistral-7B-Instruct-v0.2",
-        huggingfacehub_api_token=os.getenv("HUGGINGFACEHUB_API_TOKEN"),
-        task="conversational",
+    return HuggingFaceEndpoint(
+        repo_id="google/flan-t5-base",
+        huggingfacehub_api_token=api_key,
+        task="text2text-generation",
         max_new_tokens=512,
-        temperature=0.1
+        do_sample=True,
+        temperature=0.5
     )
 
-    llm = ChatHuggingFace(llm=llm_endpoint)
-    return llm
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
 
 def create_chat_chain(vector_store):
 
@@ -30,30 +35,86 @@ def create_chat_chain(vector_store):
     retriever = vector_store.as_retriever(
         search_kwargs = {'k': 5}
     )
-    
 
-    memory = ConversationBufferMemory(
-        memory_key="chat_history", 
-        return_messages=True
+    create_question_system_template = (
+        "Given a chat history and the latest user question "
+        "which might reference context in the chat history, "
+        "formulate a standalone question which can be understood "
+        "without the chat history. Do NOT answer the question, "
+        "just reformulate it if needed and otherwise return it as is."
+    )
+    create_question_prompt = ChatPromptTemplate.from_messages([
+        ("system", create_question_system_template),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{question}"),
+    ])
+
+    qa_system_template = (
+        "You are an assistant for question-answering tasks. "
+        "Use the following pieces of retrieved context to answer the question. "
+        "If you don't know the answer, just say that you don't know. "
+        "Keep the answer concise.\n\n"
+        "{context}"
+    )
+    qa_prompt = ChatPromptTemplate.from_messages([
+        ("system", qa_system_template),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{question}"),
+    ])
+    
+    create_question_chain = (
+        create_question_prompt | llm | StrOutputParser()
     )
 
-    chain = ConversationalRetrievalChain.from_llm(
-        llm=llm,
-        retriever=retriever,
-        memory=memory
+    conversation_chain = RunnableBranch(
+        (
+            lambda x: bool(x.get("chat_history")),
+            create_question_chain,
+        ),
+        (lambda x: x["question"]),
     )
-    
-    return chain
 
-def create_summarize_chain():
+    rag_chain = (
+        {
+            "context": conversation_chain | retriever | format_docs,
+            "question": lambda x: x["question"],
+            "chat_history": lambda x: x.get("chat_history", []),
+        }
+        | qa_prompt
+        | llm
+        | StrOutputParser()
+    )
+ 
+    return rag_chain
+
+
+def generate_summary(vector_store):
     print("Loading summarization chain..")
 
     llm = get_llm()
 
-    summary_chain = load_summarize_chain(
-        llm=llm,
-        chain_type="map_reduce"
-    )
+    docs = vector_store.similarity_search("", k=1000)
+    if not docs:
+        print("No content found..!")
+        return "No content found to summarize.."
+    
+    map_prompt = ChatPromptTemplate.from_template("Summarize this chunk:\n\n{context}")
+    map_chain = map_prompt | llm
 
-    print("Summarization chain loaded..")
-    return summary_chain
+    summaries = []
+    for i, doc in enumerate(docs[:5]):
+        print("Chunk:", doc.page_content)
+        try:
+            res = map_chain.invoke({"context": doc.page_content})
+            summaries.append(res)
+        except Exception as e:
+            print(f"Error in map_chain.invoke: {type(e)} {repr(e)}")
+
+    if not summaries: return "Failed to generate summary..!"
+            
+
+    combined_text = "\n".join(summaries)
+    reduce_prompt = ChatPromptTemplate.from_template("Combine these summaries into one cohesive paragraph:\n\n{context}")
+    reduce_chain = reduce_prompt | llm 
+ 
+    return reduce_chain.invoke({"context": combined_text})
