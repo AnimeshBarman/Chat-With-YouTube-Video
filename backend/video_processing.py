@@ -5,9 +5,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
-# import yt_dlp
-# import re
-# import shutil
 
 def get_video_id(video_url: str):
 
@@ -35,37 +32,18 @@ def get_video_id(video_url: str):
         print(f"Error parsing URL '{video_url}': {e}")
         return None
 
-# def _parse_vtt_file(filepath: str):
 
-#     transcript = []
-#     print(f"Parsing VTT file: {filepath}")
-#     try:
-#         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-#             lines = f.readlines()
-    
-#         print(f"Parsing file: {filepath} (Total lines: {len(lines)})")
-
-#         for line in lines:
-#             line = line.strip()
-#             if not line or line.startswith('WEBVTT') or '-->' in line or line.startswith('Kind:') or line.startswith('Language:'):
-#                 continue
-            
-#             line = re.sub(r'<[^>]+>', '', line)
-
-#             if line and not line.isdigit():
-#                 if not transcript or transcript[-1] != line:
-#                     transcript.append(line)
-            
-#         full_text =  " ".join(transcript)
-
-#         if len(full_text) < 50:
-#             print("Warnung: parsed text is too short..!")
-
-#         return full_text
-    
-#     except Exception as e:
-#         print(f"Error parsing vtt file: {e}")
-#         return ""
+def get_video_title(video_url: str):
+    try:
+        oembed_url = f"https://www.youtube.com/oembed?url={video_url}&format=json"
+        response = requests.get(oembed_url)
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("title", "Unknown video title..")
+        return "Unknown video title..!"
+    except Exception as e:
+        print(f"Error fetching title: {e}")
+        return "Video title not found..!"
 
 
 def get_transcript(video_url: str, video_id: str):
@@ -74,6 +52,9 @@ def get_transcript(video_url: str, video_id: str):
     if not api_key:
         raise ValueError("Youtube transcript api key not found..!")
     
+    video_title = get_video_title(video_url)
+    print(f"Video title: {video_title}")
+
     print(f"Fetching transcript for: {video_id}..")
 
     url = "https://www.youtube-transcript.io/api/transcripts"
@@ -127,84 +108,11 @@ def get_transcript(video_url: str, video_id: str):
         print("Transcript fetched successfully..")
         print(full_transcript)
 
-        return full_transcript, "detected"
+        return full_transcript, "detected", video_title
     
     except Exception as e:
         print(f"Error fetching transcript from API: {e}")
-        return None, None
-
-    # temp_sub_dir = f"./temp_subs_{video_id}"
-    # if not os.path.exists(temp_sub_dir):
-    #     os.makedirs(temp_sub_dir)
-
-    # ydl_opts = {
-    #     'writesubtitles': True,
-    #     'writeautomaticsub': True,
-    #     'sublangs': ['hi', 'hi-latn', 'en'], 
-    #     'skip_download': True,
-    #     'subformat': 'vtt',
-    #     'outtmpl': os.path.join(temp_sub_dir, '%(id)s.%(language)s.%(ext)s'),
-    #     'http_headers': {
-    #         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    #         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,/;q=0.8',
-    #         'Accept-Language': 'en-us,en;q=0.5',
-    #         'Sec-Fetch-Mode': 'navigate',
-    #     }
-    # }
-
-    # try:
-    #     print("Downloading subtitles with yt-dlp...")
-    #     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-    #         ydl.download([video_url])
-        
-        
-    #     vtt_filepath = None
-    #     downloaded_lang = None
-        
-    #     files_in_dir = os.listdir(temp_sub_dir)
-    #     print(f"Files found: {files_in_dir}")
-
-    #     lang_priority = ['hi', 'hi-latn', 'en']
-        
-    #     for lang in lang_priority:
-    #         for f in files_in_dir:
-    #             if f.endswith('.vtt') and (f'.{lang}.' in f or f.startswith(f'{video_id}.{lang}')):
-    #                 vtt_filepath = os.path.join(temp_sub_dir, f)
-    #                 downloaded_lang = lang
-    #                 break 
-    #         if vtt_filepath:
-    #             break
-
-    #     if not vtt_filepath:
-    #         for f in files_in_dir:
-    #             if f.endswith('.vtt'):
-    #                 vtt_filepath = os.path.join(temp_sub_dir, f)
-    #                 downloaded_lang = 'unknown'
-    #                 break 
-
-    #     if not vtt_filepath:
-    #         raise Exception("No .vtt subtitle files found by yt-dlp in the directory.")
-        
-
-    #     print(f"Found transcript file: {vtt_filepath}")
-    #     full_transcript = _parse_vtt_file(vtt_filepath)
-
-    #     if not full_transcript or len(full_transcript.strip()) == 0:
-    #         raise Exception("Text extraction failed..!")
-        
-
-    #     print(full_transcript)
-        
-    #     return full_transcript, downloaded_lang
-
-    # except Exception as e:
-    #     print(f"Error in get_transcript (yt-dlp): {e}")
-    #     return None, None
-    
-    # finally:
-    #     if os.path.exists(temp_sub_dir):
-    #         shutil.rmtree(temp_sub_dir)
-    #         print(f"Cleaned up temp directory: {temp_sub_dir}")
+        return None, None, None
 
 
 def create_vector_store(transcript: str):

@@ -59,9 +59,16 @@ def process_video(request: VideoRequest, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=400, detail="Invalid YouTube URL.")
 
     if video_id in vector_stores:
-        return {"status": "success", "video_id": video_id, "message": "Already processed."}
+        title = video_processing.get_video_title(request.url)
 
-    transcript, lang = video_processing.get_transcript(request.url, video_id)
+        return {
+            "status": "success", 
+            "video_id": video_id, 
+            "message": "Already processed.",
+            "title": title
+        }
+
+    transcript, lang, video_title = video_processing.get_transcript(request.url, video_id)
     if not transcript:
         raise HTTPException(status_code=500, detail="Could not retrieve transcript.")
 
@@ -70,6 +77,8 @@ def process_video(request: VideoRequest, background_tasks: BackgroundTasks):
         
         chat_chain = chat_service.create_chat_chain(vector_store)
         
+        print(f"--- Title Found: {video_title} ---")
+
         vector_stores[video_id] = vector_store
         chat_chains[video_id] = chat_chain
 
@@ -78,7 +87,8 @@ def process_video(request: VideoRequest, background_tasks: BackgroundTasks):
         return {
             "status": "success",
             "video_id": video_id,
-            "language": lang
+            "language": lang,
+            "title": video_title
         }
         
     except Exception as e:
