@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from operator import itemgetter
 
-from langchain_huggingface import HuggingFaceEndpoint
+from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
@@ -16,14 +16,16 @@ def get_llm():
     if not api_key:
         raise ValueError("HUGGINGFACEHUB_API_TOKEN not found in .env file.")
         
-    return HuggingFaceEndpoint(
-        repo_id="google/flan-t5-base",
+    llm_endpoint = HuggingFaceEndpoint(
+        repo_id="MiniMaxAI/MiniMax-M2",
         huggingfacehub_api_token=api_key,
-        task="text2text-generation",
+        task="conversational",
         max_new_tokens=512,
-        do_sample=True,
-        temperature=0.5
+        temperature=0.1
     )
+
+    llm = ChatHuggingFace(llm=llm_endpoint)
+    return llm
 
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
@@ -33,23 +35,23 @@ def create_chat_chain(vector_store):
     llm = get_llm()
     
     retriever = vector_store.as_retriever(
-        search_kwargs = {'k': 5}
+        search_kwargs = {'k': 4}
     )
 
-    create_question_system_template = (
+    condense_question_template = (
         "Given a chat history and the latest user question "
         "which might reference context in the chat history, "
         "formulate a standalone question which can be understood "
         "without the chat history. Do NOT answer the question, "
         "just reformulate it if needed and otherwise return it as is."
     )
-    create_question_prompt = ChatPromptTemplate.from_messages([
-        ("system", create_question_system_template),
+    condense_question_prompt = ChatPromptTemplate.from_messages([
+        ("system", condense_question_template),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{question}"),
     ])
 
-    qa_system_template = (
+    qa_template = (
         "You are an assistant for question-answering tasks. "
         "Use the following pieces of retrieved context to answer the question. "
         "If you don't know the answer, just say that you don't know. "
@@ -57,13 +59,13 @@ def create_chat_chain(vector_store):
         "{context}"
     )
     qa_prompt = ChatPromptTemplate.from_messages([
-        ("system", qa_system_template),
+        ("system", qa_template),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{question}"),
     ])
     
     create_question_chain = (
-        create_question_prompt | llm | StrOutputParser()
+        condense_question_prompt | llm | StrOutputParser()
     )
 
     conversation_chain = RunnableBranch(
@@ -99,22 +101,29 @@ def generate_summary(vector_store):
         return "No content found to summarize.."
     
     map_prompt = ChatPromptTemplate.from_template("Summarize this chunk:\n\n{context}")
-    map_chain = map_prompt | llm
+    map_chain = map_prompt | llm | StrOutputParser()
 
     summaries = []
-    for i, doc in enumerate(docs[:5]):
+
+    limited_docs = docs[:5]    
+    print(f"Processing {len(limited_docs)} chunks for summary...") 
+    for i, doc in enumerate(limited_docs):
         print("Chunk:", doc.page_content)
         try:
             res = map_chain.invoke({"context": doc.page_content})
             summaries.append(res)
         except Exception as e:
-            print(f"Error in map_chain.invoke: {type(e)} {repr(e)}")
+            print(f"Error in map_chain.invoke {i}: {e}")
+
 
     if not summaries: return "Failed to generate summary..!"
             
 
     combined_text = "\n".join(summaries)
     reduce_prompt = ChatPromptTemplate.from_template("Combine these summaries into one cohesive paragraph:\n\n{context}")
-    reduce_chain = reduce_prompt | llm 
+    reduce_chain = reduce_prompt | llm | StrOutputParser()
  
-    return reduce_chain.invoke({"context": combined_text})
+    final_res = reduce_chain.invoke({"context": combined_text})
+    print("summary generated successfully..")
+
+    return final_res
