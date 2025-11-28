@@ -52,12 +52,13 @@ def create_chat_chain(vector_store):
     ])
 
     qa_template = (
-        "You are an assistant for question-answering tasks. "
-        "Use the following pieces of retrieved context to answer the question. "
-        "If you don't know the answer, just say that you don't know. "
-        "Keep the answer concise.\n\n"
-        "{context}"
-    )
+    "You are an intelligent video assistant who has watched this video. "
+    "Answer the user's question based ONLY on the video context provided below. "
+    "Do not say 'According to the passage' or 'Based on the excerpt'. "
+    "Answer directly and naturally. "
+    "If the answer is not in the context, strictly say 'I couldn't find that information in the video.'\n\n"
+    "Video Context:\n{context}"
+)
     qa_prompt = ChatPromptTemplate.from_messages([
         ("system", qa_template),
         MessagesPlaceholder(variable_name="chat_history"),
@@ -108,7 +109,6 @@ def generate_summary(vector_store):
     limited_docs = docs[:5]    
     print(f"Processing {len(limited_docs)} chunks for summary...") 
     for i, doc in enumerate(limited_docs):
-        print("Chunk:", doc.page_content)
         try:
             res = map_chain.invoke({"context": doc.page_content})
             summaries.append(res)
@@ -120,7 +120,13 @@ def generate_summary(vector_store):
             
 
     combined_text = "\n".join(summaries)
-    reduce_prompt = ChatPromptTemplate.from_template("Combine these summaries into one cohesive paragraph:\n\n{context}")
+    reduce_prompt = ChatPromptTemplate.from_template(
+    "You are a professional video summarizer. "
+    "Create a structured summary of the video content based on these chunks. "
+    "Use Markdown formatting with bullet points for key insights. "
+    "Keep it concise and easy to read.\n\n"
+    "Content:\n{context}"
+)
     reduce_chain = reduce_prompt | llm | StrOutputParser()
  
     final_res = reduce_chain.invoke({"context": combined_text})

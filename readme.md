@@ -10,13 +10,13 @@ This backend is built to be fast and responsive, using background tasks to handl
 * **Conversational Memory:** The chatbot remembers previous questions, allowing for follow-up conversations.
 * **Full Video Summarization:** Get a complete summary of the entire video, generated in the background.
 * **Fast Processing:** The user can start chatting (Q&A) almost immediately while the full summary is prepared in the background.
-* **Multilingual Support:** Uses `yt-dlp` and multilingual embedding models to support videos in various languages (e.g., English, Hindi).
+* **Multilingual Support:** Uses `youtube-transcript.io` and multilingual embedding models to support videos in various languages (e.g., English, Hindi).
 
 ## 🛠️ Tech Stack
 
 * **Framework:** **FastAPI** for the high-performance, asynchronous API.
 * **AI Core:** **LangChain** to manage all AI logic, memory, and data flows.
-* **Transcript Fetching:** **`yt-dlp`** for reliably downloading video transcripts.
+* **Transcript Fetching:** **`youtube-transcript.io`** for reliably downloading video transcripts.
 * **Vector Store:** **FAISS** (in-memory) for creating fast and efficient semantic search indexes from the transcript.
 * **LLM:** **Mistral-7B** (or any other) via **Hugging Face Hub**.
 * **Embeddings:** **`paraphrase-multilingual-MiniLM-L12-v2`** (a multilingual model) to understand text from different languages.

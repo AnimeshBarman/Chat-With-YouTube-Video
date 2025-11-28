@@ -1,7 +1,8 @@
+import uvicorn
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel
-import uvicorn
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 import video_processing
 import chat_service
@@ -10,6 +11,14 @@ load_dotenv()
 
 app = FastAPI(
     title="Chat with YouTube"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
