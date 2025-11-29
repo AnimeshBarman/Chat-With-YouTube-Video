@@ -119,14 +119,19 @@ def generate_summary(vector_store):
     if not summaries: return "Failed to generate summary..!"
             
 
-    combined_text = "\n".join(summaries)
+    combined_text = "\n\n".join(summaries)
     reduce_prompt = ChatPromptTemplate.from_template(
-    "You are a professional video summarizer. "
-    "Create a structured summary of the video content based on these chunks. "
-    "Use Markdown formatting with bullet points for key insights. "
-    "Keep it concise and easy to read.\n\n"
-    "Content:\n{context}"
-)
+        "You are an expert editor. Summarize the video content in two very short parts:\n"
+        "IMPORTANT: Regardless of the input language (Hindi/English), your output MUST be in ENGLISH.\n\n"
+        "1. A 1-sentence abstract (Maximum 100 words).\n"
+        "2. 5-7 short bullet points and add dot(.) at the end (Maximum 10-20 words per point).\n\n"
+        "Strictly follow this format:\n"
+        "[Short Abstract]\n"
+        "###\n"
+        "[Short Bullet Points]\n\n"
+        "Content to analyze:\n{context}"
+    )
+
     reduce_chain = reduce_prompt | llm | StrOutputParser()
  
     final_res = reduce_chain.invoke({"context": combined_text})

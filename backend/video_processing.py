@@ -125,7 +125,7 @@ def create_vector_store(transcript: str):
     chunks = text_splitter.split_text(transcript)
     
     print("Generating embeddings...")
-    embeddings = HuggingFaceEmbeddings(model_name="BAAI/bge-base-en-v1.5")
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 
     
     print("Creating FAISS vector store...")
