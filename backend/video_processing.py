@@ -33,14 +33,17 @@ def get_video_id(video_url: str):
         return None
 
 
-def get_video_title(video_url: str):
+def get_video_title(video_id: str):
     try:
+        video_url = f"https://www.youtube.com/watch?v={video_id}"
         oembed_url = f"https://www.youtube.com/oembed?url={video_url}&format=json"
         response = requests.get(oembed_url)
         if response.status_code == 200:
             data = response.json()
             return data.get("title", "Unknown video title..")
-        return "Unknown video title..!"
+        else:
+            print(f"oEmbed Failed: {response.status_code}")
+            return "Unknown video title..!"
     except Exception as e:
         print(f"Error fetching title: {e}")
         return "Video title not found..!"
@@ -52,7 +55,7 @@ def get_transcript(video_url: str, video_id: str):
     if not api_key:
         raise ValueError("Youtube transcript api key not found..!")
     
-    video_title = get_video_title(video_url)
+    video_title = get_video_title(video_id)
     print(f"Video title: {video_title}")
 
     print(f"Fetching transcript for: {video_id}..")
@@ -112,7 +115,7 @@ def get_transcript(video_url: str, video_id: str):
     
     except Exception as e:
         print(f"Error fetching transcript from API: {e}")
-        return None, None, None
+        return None, None, video_title
 
 
 def create_vector_store(transcript: str):

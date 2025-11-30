@@ -78,6 +78,10 @@ def process_video(request: VideoRequest, background_tasks: BackgroundTasks):
         }
 
     transcript, lang, video_title = video_processing.get_transcript(request.url, video_id)
+
+    if not video_title or video_title == "Unknown Video Title":
+        video_title = video_processing.get_video_title(request.url)
+
     if not transcript:
         raise HTTPException(status_code=500, detail="Could not retrieve transcript.")
 
