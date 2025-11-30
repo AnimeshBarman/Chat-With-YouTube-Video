@@ -23,13 +23,14 @@ const API_URL = "http://localhost:8000";
 
 function App() {
   // STATES
+  // Video processing 
   const [videoUrl, setVideoUrl] = useState("");
   const [videoData, setVideoData] = useState<VideoResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  
+  // Summary
   const [summary, setSummary] = useState<string | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
-  
+  // Chat Service
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -171,7 +172,7 @@ function App() {
       <div className="hidden md:flex w-72 flex-col h-screen sticky top-0">
         <div className="p-4 flex items-center gap-2 border-b border-zinc-800 h-[60px] bg-zinc-950">
           <FileVideo className="w-6 h-6 text-red-500" />
-          <span className="font-bold text-lg tracking-tight">YT Chat</span>
+          <span className="font-bold text-lg tracking-tight">YT Chatbot</span>
         </div>
         <SidebarContent />
       </div>
@@ -184,7 +185,7 @@ function App() {
             <SheetContent side="left" className="bg-zinc-950 border-zinc-800 p-0 w-72 text-zinc-100">
               <div className="p-4 flex items-center gap-2 border-b border-zinc-800 h-[60px]">
                 <FileVideo className="w-6 h-6 text-red-500" />
-                <span className="font-bold text-lg tracking-tight">YT Chat</span>
+                <span className="font-bold text-lg tracking-tight">YT Chatbot</span>
               </div>
               <SidebarContent />
             </SheetContent>
@@ -230,7 +231,7 @@ function App() {
                         <Badge variant="secondary" className="w-fit mb-2 bg-zinc-800 text-zinc-400 border-0">
                           {videoData.language === "detected" ? "Auto-Detected" : videoData.language}
                         </Badge>
-                        <CardTitle className="text-lg leading-tight line-clamp-2">{videoData.title}</CardTitle>
+                        <CardTitle className=" text-base text-red-500 leading-tight line-clamp-3">VIDEO TITLE: <span className=" text-amber-100">{videoData.title}</span></CardTitle>
                       </div>
                       <Button 
                         variant="ghost" 
@@ -326,9 +327,11 @@ function App() {
               )}
             </div>
 
-            <div className="lg:col-span-2 h-full">
+            {/* RIGHT PANEL*/}
+            <div className="lg:col-span-2 h-full min-h-0 flex flex-col">
               <Card className="bg-zinc-900 border-zinc-800 h-full flex flex-col shadow-xl overflow-hidden">
-                <div className="border-b border-zinc-800 p-4 flex items-center justify-between bg-zinc-900/80 backdrop-blur h-[60px]">
+                
+                <div className="border-b border-zinc-800 p-4 flex items-center justify-between bg-zinc-900/80 backdrop-blur h-[60px] shrink-0 z-10">
                   <div className="flex items-center gap-2">
                     <Bot className="w-5 h-5 text-green-500" />
                     <span className="font-medium text-sm">{videoData ? "Chat Session" : "AI Assistant"}</span>
@@ -349,8 +352,8 @@ function App() {
                       <p className="text-sm">Process a video to start chatting</p>
                     </div>
                   ) : (
-                    <ScrollArea className="h-full p-4">
-                      <div className="flex flex-col gap-6">
+                    <ScrollArea className="h-full w-full p-4">
+                      <div className="flex flex-col gap-6 pb-4">
                         
                         <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                           <div className="w-8 h-8 rounded-full bg-green-900/30 flex items-center justify-center border border-green-800 shrink-0">
@@ -367,7 +370,7 @@ function App() {
                               ${msg.role === 'user' ? 'bg-blue-600/10 border-blue-600/20' : 'bg-green-600/10 border-green-600/20'}`}>
                               {msg.role === 'user' ? <User className="w-4 h-4 text-blue-500" /> : <Bot className="w-4 h-4 text-green-500" />}
                             </div>
-                            <div className={`rounded-2xl px-4 py-2.5 max-w-[85%] text-sm leading-relaxed shadow-sm
+                            <div className={`rounded-2xl px-4 py-2.5 max-w-[85%] text-sm leading-relaxed shadow-sm whitespace-pre-wrap
                               ${msg.role === 'user' 
                                 ? 'bg-blue-600 text-white rounded-tr-none' 
                                 : 'bg-zinc-800 text-zinc-200 rounded-tl-none border border-zinc-700/50'}`}>
@@ -393,7 +396,7 @@ function App() {
                   )}
                 </CardContent>
 
-                <div className="p-4 border-t border-zinc-800 bg-zinc-900">
+                <div className="p-4 border-t border-zinc-800 bg-zinc-900 shrink-0 z-10">
                   <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex gap-3">
                     <Input 
                       placeholder="Ask a question..." value={inputMessage}

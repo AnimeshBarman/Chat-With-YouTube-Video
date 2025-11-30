@@ -7,7 +7,7 @@ export interface VideoResponse {
 
 export interface SummaryResponse {
   summary: string;
-  detail?: string; // For 202 processing message
+  detail?: string;
 }
 
 export interface ChatMessage {
