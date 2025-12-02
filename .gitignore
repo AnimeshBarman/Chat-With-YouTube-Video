@@ -34,9 +34,7 @@ dist
 dist-ssr
 *.local
 
-package.json
-package-lock.json
-tsconfig.node.json
+
 
 # Editor directories and files
 .vscode/*
