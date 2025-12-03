@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 import type { VideoResponse, ChatMessage } from "./types";
 
-const API_URL = "http://localhost:8000";
+const API_URL = "https://chat-with-youtube-video.onrender.com";
 
 function App() {
   // STATES
@@ -36,6 +36,14 @@ function App() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const refresh = setInterval(() => {
+      axios.get(`${API_URL}/`)
+    }, 300000)
+
+    return () => clearInterval(refresh)
+  }, [])
 
   const parseSummary = (text: string) => {
     if (!text) return { abstract: "", points: [] };
