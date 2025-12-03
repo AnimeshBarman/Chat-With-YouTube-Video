@@ -120,6 +120,9 @@ def get_transcript(video_url: str, video_id: str):
 
 
 def create_vector_store(transcript: str):
+    api_key = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    if not api_key:
+        raise ValueError("Youtube transcript api key not found..!")
 
     print("Splitting text into chunks...")
     text_splitter = RecursiveCharacterTextSplitter(
@@ -130,7 +133,8 @@ def create_vector_store(transcript: str):
     
     print("Generating embeddings...")
     embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        api_key=api_key
     )
     
     print("Creating FAISS vector store...")
