@@ -1,10 +1,10 @@
 import os
 import requests
 import urllib.parse as urlparse
+from typing import List
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-# from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_core.embeddings import Embeddings
 
 
 def get_video_id(video_url: str):
@@ -117,12 +117,46 @@ def get_transcript(video_url: str, video_id: str):
     except Exception as e:
         print(f"Error fetching transcript from API: {e}")
         return None, None, video_title
+    
+
+def get_embeddings_JINA(text: str) -> list[float]:
+    JINA_MODEL = "jina-embeddings-v2-base-en"
+    JINA_API_KEY = os.getenv("JINA_API_KEY")
+    if not JINA_API_KEY:
+        raise ValueError("JINA_API_KEY not set in environment")
+
+    try:
+        url = "https://api.jina.ai/v1/embeddings"
+        headers = {
+            "Authorization": f"Bearer {JINA_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": JINA_MODEL,
+            "input": text,
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+
+        return data["data"][0]["embedding"]
+
+    except Exception as e:
+        print(f"Error with JINA: {e}")
+        raise
+
+
+class JinaEmbeddings(Embeddings):
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        return [get_embeddings_JINA(t) for t in texts]
+
+    def embed_query(self, text: str) -> List[float]:
+        return get_embeddings_JINA(text)
 
 
 def create_vector_store(transcript: str):
-    api_key = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-    if not api_key:
-        raise ValueError("Youtube transcript api key not found..!")
+
 
     print("Splitting text into chunks...")
     text_splitter = RecursiveCharacterTextSplitter(
@@ -132,11 +166,7 @@ def create_vector_store(transcript: str):
     chunks = text_splitter.split_text(transcript)
     
     print("Generating embeddings...")
-    embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2",
-        api_key=api_key
-    )
-    
+    embeddings = JinaEmbeddings()    
     print("Creating FAISS vector store...")
     vector_store = FAISS.from_texts(chunks, embedding=embeddings)
     
