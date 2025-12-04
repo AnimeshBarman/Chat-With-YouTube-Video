@@ -119,7 +119,7 @@ def get_transcript(video_url: str, video_id: str):
         return None, None, video_title
     
 
-def get_embeddings_JINA(text: str) -> list[float]:
+def get_embedding_JINA_batch(texts: List[str]) -> List[List[float]]:
     JINA_MODEL = "jina-embeddings-v2-base-en"
     JINA_API_KEY = os.getenv("JINA_API_KEY")
     if not JINA_API_KEY:
@@ -133,26 +133,38 @@ def get_embeddings_JINA(text: str) -> list[float]:
         }
         payload = {
             "model": JINA_MODEL,
-            "input": text,
+            "input": texts,
         }
 
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()
 
-        return data["data"][0]["embedding"]
+        return [item["embedding"] for item in data["data"]]
 
     except Exception as e:
         print(f"Error with JINA: {e}")
         raise
 
+def get_embedding_JINA(text: str) -> List[float]:
+    return get_embedding_JINA_batch([text][0])
+
+
 
 class JinaEmbeddings(Embeddings):
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        return [get_embeddings_JINA(t) for t in texts]
+        all_vectors : List[List[float]] = []
+        batch_size = 32
+        
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            print(f"Jina batch {i}-{i + len(batch) - 1}")
+            vectors = get_embedding_JINA_batch(batch)
+            all_vectors.extend(vectors)
+        return all_vectors
 
     def embed_query(self, text: str) -> List[float]:
-        return get_embeddings_JINA(text)
+        return get_embedding_JINA(text)
 
 
 def create_vector_store(transcript: str):
@@ -164,6 +176,11 @@ def create_vector_store(transcript: str):
         chunk_overlap=200
     )
     chunks = text_splitter.split_text(transcript)
+
+    MAX_CHUNKS = 120
+    if len(chunks) > MAX_CHUNKS:
+        chunks = chunks[:MAX_CHUNKS]
+        print(f"Chunks trimmed to {MAX_CHUNKS}")
     
     print("Generating embeddings...")
     embeddings = JinaEmbeddings()    

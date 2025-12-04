@@ -68,7 +68,7 @@ def process_video(request: VideoRequest, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=400, detail="Invalid YouTube URL.")
 
     if video_id in vector_stores:
-        title = video_processing.get_video_title(request.url)
+        title = video_processing.get_video_title(video_id)
 
         return {
             "status": "success", 

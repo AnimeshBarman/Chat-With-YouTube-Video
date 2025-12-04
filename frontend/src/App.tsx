@@ -368,7 +368,7 @@ function App() {
                             <Bot className="w-4 h-4 text-green-500" />
                           </div>
                           <div className="bg-zinc-800 rounded-2xl rounded-tl-none px-4 py-2 max-w-[85%] text-sm text-zinc-200">
-                            Hello! I've analyzed <strong>{videoData.title}</strong>. Ask me anything!
+                            Hello! I've analyzed <strong>{videoData.title}</strong>. Ask me anything related to the video!
                           </div>
                         </div>
 
