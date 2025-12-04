@@ -110,7 +110,7 @@ def get_transcript(video_url: str, video_id: str):
             raise Exception("Transcript text is empty..!")
         
         print("Transcript fetched successfully..")
-        print(full_transcript)
+        # print(full_transcript)
 
         return full_transcript, "detected", video_title
     
