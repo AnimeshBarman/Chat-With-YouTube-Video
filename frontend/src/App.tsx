@@ -37,13 +37,13 @@ function App() {
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const refresh = setInterval(() => {
-      axios.get(`${API_URL}/`)
-    }, 300000)
+  // useEffect(() => {
+  //   const refresh = setInterval(() => {
+  //     axios.get(`${API_URL}/`)
+  //   }, 300000)
 
-    return () => clearInterval(refresh)
-  }, [])
+  //   return () => clearInterval(refresh)
+  // }, [])
 
   const parseSummary = (text: string) => {
     if (!text) return { abstract: "", points: [] };
