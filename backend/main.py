@@ -124,8 +124,16 @@ def chat(request: ChatRequest):
             "question": request.question,
             "chat_history": []
         })
+
+        final_answer = ""
+
+        if isinstance(result, dict):
+            final_answer = result.get("answer", "No answer generated..!")
+
+        else:
+            final_answer = str(result)
         
-        return ChatResponse(answer=result)
+        return ChatResponse(answer=final_answer)
         
     except Exception as e:
         print(f"Chat erroor: {e}")

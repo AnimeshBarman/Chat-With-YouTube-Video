@@ -147,7 +147,9 @@ def get_embedding_JINA_batch(texts: List[str]) -> List[List[float]]:
         raise
 
 def get_embedding_JINA(text: str) -> List[float]:
-    return get_embedding_JINA_batch([text][0])
+    embeddings_list = get_embedding_JINA_batch([text])
+
+    return embeddings_list[0]
 
 
 
