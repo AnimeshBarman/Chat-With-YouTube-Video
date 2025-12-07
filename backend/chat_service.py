@@ -92,49 +92,56 @@ def create_chat_chain(vector_store):
 
 
 def generate_summary(vector_store):
+    
     print("Loading summarization chain..")
 
     llm = get_llm()
 
-    docs = vector_store.similarity_search("", k=1000)
+    docs = vector_store.similarity_search("comprehensive summary of the video content", k=7)
     if not docs:
         print("No content found..!")
         return "No content found to summarize.."
     
-    map_prompt = ChatPromptTemplate.from_template("Summarize this chunk:\n\n{context}")
-    map_chain = map_prompt | llm | StrOutputParser()
+    # map_prompt = ChatPromptTemplate.from_template("Summarize this chunk:\n\n{context}")
+    # map_chain = map_prompt | llm | StrOutputParser()
 
-    summaries = []
+    # summaries = []
 
-    limited_docs = docs[:5]    
-    print(f"Processing {len(limited_docs)} chunks for summary...") 
-    for i, doc in enumerate(limited_docs):
-        try:
-            res = map_chain.invoke({"context": doc.page_content})
-            summaries.append(res)
-        except Exception as e:
-            print(f"Error in map_chain.invoke {i}: {e}")
+    # limited_docs = docs[:5]    
+    # print(f"Processing {len(limited_docs)} chunks for summary...") 
+    # for i, doc in enumerate(limited_docs):
+    #     try:
+    #         res = map_chain.invoke({"context": doc.page_content})
+    #         summaries.append(res)
+    #     except Exception as e:
+    #         print(f"Error in map_chain.invoke {i}: {e}")
 
 
-    if not summaries: return "Failed to generate summary..!"
+    # if not summaries: return "Failed to generate summary..!"
             
 
-    combined_text = "\n\n".join(summaries)
-    reduce_prompt = ChatPromptTemplate.from_template(
-        "You are an expert editor. Summarize the video content in two very short parts:\n"
-        "IMPORTANT: Regardless of the input language (Hindi/English), your output MUST be in ENGLISH.\n\n"
-        "1. A 1-sentence abstract (Maximum 100 words).\n"
-        "2. 5-7 short bullet points and add dot(.) at the end (Maximum 10-20 words per point).\n\n"
-        "Strictly follow this format:\n"
-        "[Short Abstract]\n"
+    combined_text = "\n\n".join([doc.page_content for doc in docs])
+
+    summary_prompt = ChatPromptTemplate.from_template(
+        "You are an expert video analyst. Read the context below and provide a structured summary.\n"
+        "IMPORTANT: Output MUST be in English only.\n\n"
+        "Output Format:\n"
+        "1. A short abstract (2-3 sentences).\n"
+        "2. 5-7 key bullet points.\n\n"
+        "Strictly use this separator format:\n"
+        "[Abstract Paragraph]\n"
         "###\n"
-        "[Short Bullet Points]\n\n"
-        "Content to analyze:\n{context}"
+        "[Bullet Points]\n\n"
+        "Context from video:\n{context}"
     )
 
-    reduce_chain = reduce_prompt | llm | StrOutputParser()
+    chain = summary_prompt | llm | StrOutputParser()
  
-    final_res = reduce_chain.invoke({"context": combined_text})
-    print("summary generated successfully..")
-
-    return final_res
+    try:
+        print("Invoking LLM for Summary...")
+        res = chain.invoke({"context": combined_text})
+        print("Summary Generated Successfully!")
+        return res
+    except Exception as e:
+        print(f"Summary Generation Failed: {e}")
+        return f"Error: Could not generate summary. {str(e)}"
