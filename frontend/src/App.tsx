@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 import type { VideoResponse, ChatMessage } from "./types";
 
-const API_URL = "https://chat-with-youtube-video.onrender.com/";
+const API_URL = "https://chat-with-youtube-video.onrender.com";
 
 function App() {
   // STATES
