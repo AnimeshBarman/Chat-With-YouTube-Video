@@ -15,7 +15,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://chatt-tubee.netlify.app"],
+    allow_origins=["https://chat-tube-gray.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
